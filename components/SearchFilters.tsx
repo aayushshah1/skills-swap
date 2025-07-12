@@ -4,9 +4,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+interface Filters {
+  skill: string;
+  availability: string;
+}
+
 export default function SearchFilters({ filters, setFilters }: {
-  filters: { skill: string, availability: string },
-  setFilters: (f: any) => void
+  filters: Filters;
+  setFilters: (filters: Filters) => void;
 }) {
   return (
     <div className="flex flex-wrap gap-4">

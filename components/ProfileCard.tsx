@@ -1,17 +1,32 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
+
+interface Profile {
+  id: string;
+  name: string;
+  location: string;
+  image?: string;
+  skills: string[];
+  availability: string[];
+  skills_offered?: string[];
+  skills_wanted?: string[];
+  rating?: number;
+}
 
 export default function ProfileCard({ profile, onRequestClick }: {
-  profile: any;
+  profile: Profile;
   onRequestClick: () => void;
 }) {
   return (
     <Card className="flex flex-col gap-4 p-4">
       <div className="flex items-center gap-4">
-        <img
+        <Image
           src={profile.image || "/default-user.png"}
           alt="profile"
           className="w-12 h-12 rounded-full"
+          width={48}
+          height={48}
         />
         <div>
           <h2 className="text-lg font-semibold">{profile.name}</h2>
