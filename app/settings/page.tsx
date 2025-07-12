@@ -1,5 +1,5 @@
 import { createClient } from '@/utils/supabase/server';
-import { fetchUserProfile } from '@/app/fetch';
+import { fetchOwnUserProfile } from '@/app/fetch';
 import { redirect } from 'next/navigation';
 
 export default async function SettingsPage() {
@@ -13,7 +13,7 @@ export default async function SettingsPage() {
     redirect('/login');
   }
 
-  const userProfile = await fetchUserProfile(user.id);
+  const userProfile = await fetchOwnUserProfile();
 
   return (
     <div className="container mx-auto max-w-2xl p-6">

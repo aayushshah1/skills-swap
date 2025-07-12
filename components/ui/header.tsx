@@ -11,7 +11,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { logout } from '@/app/actions';
 import { createClient } from '@/utils/supabase/server';
-import { fetchUserProfile, fetchUserStats } from '@/app/fetch';
+import { fetchOwnUserProfile, fetchUserStats } from '@/app/fetch';
 import { User, Settings, LogOut, Star } from 'lucide-react';
 
 export default async function Header() {
@@ -26,8 +26,15 @@ export default async function Header() {
   let userStats = null;
 
   if (user) {
-    userProfile = await fetchUserProfile(user.id);
-    userStats = await fetchUserStats(user.id);
+    try {
+      userProfile = await fetchOwnUserProfile();
+      if (userProfile) {
+        userStats = await fetchUserStats();
+      }
+    } catch (error) {
+      console.error('Error fetching user data in header:', error);
+      // Continue without user profile data
+    }
   }
 
   const getInitials = (firstName: string | null, lastName: string | null) => {
@@ -45,7 +52,7 @@ export default async function Header() {
         </Link>
 
         <nav className="flex items-center space-x-4">
-          {user && userProfile ? (
+          {user ? (
             <>
               <Link href="/swap-requests" className="text-sm font-medium hover:text-primary transition-colors">
                 Swap Requests
@@ -56,11 +63,14 @@ export default async function Header() {
                   <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage 
-                        src={userProfile.photo_url || undefined} 
-                        alt={userProfile.display_name || 'User'} 
+                        src={userProfile?.photo_url || undefined} 
+                        alt={userProfile?.display_name || 'User'} 
                       />
                       <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white">
-                        {getInitials(userProfile.first_name, userProfile.last_name)}
+                        {userProfile ? 
+                          getInitials(userProfile.first_name, userProfile.last_name) : 
+                          user.email?.[0]?.toUpperCase() || 'U'
+                        }
                       </AvatarFallback>
                     </Avatar>
                   </Button>
@@ -69,8 +79,9 @@ export default async function Header() {
                 <DropdownMenuContent className="w-56" align="end" forceMount>
                   <div className="flex flex-col space-y-1 p-2">
                     <p className="text-sm font-medium leading-none">
-                      {userProfile.display_name || 
-                       `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() ||
+                      {userProfile?.display_name || 
+                       (userProfile ? `${userProfile.first_name || ''} ${userProfile.last_name || ''}`.trim() : '') ||
+                       user.email?.split('@')[0] ||
                        'User'}
                     </p>
                     <p className="text-xs leading-none text-muted-foreground">
