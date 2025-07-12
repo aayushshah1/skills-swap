@@ -8,8 +8,9 @@ import { Switch } from "@/components/ui/switch";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { User, MapPin, Calendar, Eye, EyeOff, Save, Loader2 } from "lucide-react";
+import { User, MapPin, Calendar, Eye, EyeOff, Save, Loader2, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
+import SwapRequestPopup from "@/components/SwapRequestPopup";
 
 interface UserProfile {
   uid: string;
@@ -38,6 +39,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [showSwapRequest, setShowSwapRequest] = useState(false);
   const [formData, setFormData] = useState({
     first_name: '',
     last_name: '',
@@ -315,8 +317,16 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Save Button */}
-            <div className="flex justify-end pt-4">
+            {/* Save and Request Buttons */}
+            <div className="flex justify-end gap-2 pt-4">
+              <Button 
+                onClick={() => setShowSwapRequest(true)} 
+                variant="outline"
+                className="flex items-center gap-2"
+              >
+                <MessageSquare className="h-4 w-4" />
+                Request
+              </Button>
               <Button onClick={saveProfile} disabled={saving} className="flex items-center gap-2">
                 {saving ? (
                   <>
@@ -333,6 +343,15 @@ export default function ProfilePage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Swap Request Popup */}
+        {profile && (
+          <SwapRequestPopup
+            isOpen={showSwapRequest}
+            onClose={() => setShowSwapRequest(false)}
+            targetUserName={profile.display_name || profile.first_name || 'User'}
+          />
+        )}
       </div>
     </div>
   );

@@ -1,11 +1,12 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { logout } from "@/app/actions";
 
-export default function UnauthorizedPage() {
+function UnauthorizedContent() {
   const searchParams = useSearchParams();
   const userRole = searchParams.get("user_role") || "unknown";
   const pathTried = searchParams.get("path_tried") || "unknown";
@@ -45,5 +46,13 @@ export default function UnauthorizedPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function UnauthorizedPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UnauthorizedContent />
+    </Suspense>
   );
 }
