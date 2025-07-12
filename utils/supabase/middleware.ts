@@ -15,7 +15,7 @@ export async function updateSession(request: NextRequest) {
                     return request.cookies.getAll();
                 },
                 setAll(cookiesToSet) {
-                    cookiesToSet.forEach(({ name, value, options }) =>
+                    cookiesToSet.forEach(({ name, value }) =>
                         request.cookies.set(name, value)
                     );
                     supabaseResponse = NextResponse.next({
@@ -36,19 +36,47 @@ export async function updateSession(request: NextRequest) {
     // IMPORTANT: DO NOT REMOVE auth.getUser()
 
     const {
-        data: { user },
-    } = await supabase.auth.getUser();
+        data: { session },
+    } = await supabase.auth.getSession();
 
-    if (
-        !user &&
-        !request.nextUrl.pathname.startsWith("/")
-    ) {
-        // no user, potentially respond by redirecting the user to the login page
+    const pathname = request.nextUrl.pathname;
+
+    if (!session?.access_token) {
+        if (pathname.startsWith("/user") || pathname.startsWith("/admin")) {
+            const url = request.nextUrl.clone();
+            url.pathname = "/login";
+            return NextResponse.redirect(url);
+        }
+        return supabaseResponse;
+    }
+
+    // Decode JWT to extract custom claims (e.g., role)
+    const token = session.access_token;
+    const payload = JSON.parse(
+        Buffer.from(token.split(".")[1], "base64").toString()
+    );
+
+    const role = payload.user_role || "user"; // fallback role
+
+    // Role-based redirects
+    if (pathname.startsWith("/admin") && role !== "admin") {
         const url = request.nextUrl.clone();
-        url.pathname = "/";
+        url.pathname = "/unauthorized";
+        url.searchParams.set("user_role", role);
+        url.searchParams.set("path_tried", pathname.substring(1)); // Remove leading slash
+        url.searchParams.set("correct_role", "admin");
         return NextResponse.redirect(url);
     }
 
+    if (pathname.startsWith("/user") && !["user", "admin"].includes(role)) {
+        const url = request.nextUrl.clone();
+        url.pathname = "/unauthorized";
+        url.searchParams.set("user_role", role);
+        url.searchParams.set("path_tried", pathname.substring(1)); // Remove leading slash
+        url.searchParams.set("correct_role", "user");
+        return NextResponse.redirect(url);
+    }
+    
     // IMPORTANT: You *must* return the supabaseResponse object as it is.
     // If you're creating a new response object with NextResponse.next() make sure to:
     // 1. Pass the request in it, like so:
