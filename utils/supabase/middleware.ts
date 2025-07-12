@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse, type NextRequest } from "next/server";
 
 export async function updateSession(request: NextRequest) {
@@ -92,3 +93,28 @@ export async function updateSession(request: NextRequest) {
 
     return supabaseResponse;
 }
+
+export async function middleware(req: NextRequest) {
+  const res = NextResponse.next();
+  const supabase = createMiddlewareClient({ req, res });
+
+  const {
+    data: { user }
+  } = await supabase.auth.getUser();
+
+  const protectedRoutes = ['/profile', '/swap-requests', '/admin'];
+
+  if (protectedRoutes.some((path) => req.nextUrl.pathname.startsWith(path))) {
+    if (!user) {
+      const redirectUrl = new URL('/login', req.url);
+      redirectUrl.searchParams.set('redirectedFrom', req.nextUrl.pathname);
+      return NextResponse.redirect(redirectUrl);
+    }
+  }
+
+  return res;
+}
+
+export const config = {
+  matcher: ['/profile', '/swap-requests', '/admin'], // protect these
+};
