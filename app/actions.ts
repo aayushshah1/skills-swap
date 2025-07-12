@@ -21,8 +21,8 @@ export async function login(formData: FormData) {
         return { error: error.message }
     }
 
-    revalidatePath("/board", "layout");
-    redirect("/board");
+    revalidatePath("/user", "layout");
+    redirect("/user");
 }
 
 export async function signup(formData: FormData) {
@@ -35,7 +35,7 @@ export async function signup(formData: FormData) {
         password: formData.get("password") as string,
         options: {
             data: {
-                name: "Snehil"
+                name: "Default Name, Change it later"
             }
         }
     };
@@ -46,6 +46,6 @@ export async function signup(formData: FormData) {
         return { error: error.message }
     }
 
-    revalidatePath("/board", "layout");
-    redirect("/board");
+    revalidatePath("/user", "layout");
+    redirect("/user");
 }
