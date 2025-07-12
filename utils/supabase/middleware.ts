@@ -66,6 +66,17 @@ export async function updateSession(request: NextRequest) {
 
     const role = payload.user_role || "user"; // fallback role
 
+    // Redirect logged-in users away from login page
+    if (pathname === "/login") {
+        const url = request.nextUrl.clone();
+        if (role === "admin") {
+            url.pathname = "/admin";
+        } else {
+            url.pathname = "/user";
+        }
+        return NextResponse.redirect(url);
+    }
+
     // Role-based redirects
     if (pathname.startsWith("/admin") && role !== "admin") {
         const url = request.nextUrl.clone();

@@ -468,3 +468,402 @@ export async function fetchAllUsers(): Promise<UserProfile[]> {
     return [];
   }
 }
+
+/**
+ * Check if user's profile is complete (has location and availability)
+ */
+export async function isUserProfileComplete(): Promise<boolean> {
+  try {
+    const profile = await fetchOwnUserProfile();
+    if (!profile) return false;
+    
+    return !!(profile.location && profile.availability && profile.availability.length > 0);
+  } catch (err) {
+    console.error('Error checking profile completeness:', err);
+    return false;
+  }
+}
+
+/**
+ * Fetch public swap requests for dashboard display
+ * Returns requests from public profiles only
+ */
+export async function fetchPublicSwapRequests(limit: number = 5): Promise<(SwapRequest & { requester: UserProfile })[]> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user to exclude their own requests
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Error getting current user for public requests:', userError);
+      return [];
+    }
+    
+    // Fetch swap requests with requester profile information
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .select(`
+        *,
+        requester:user!swap_requests_requester_uid_fkey (
+          uid,
+          first_name,
+          last_name,
+          display_name,
+          public,
+          location,
+          availability,
+          photo_url,
+          created_at
+        )
+      `)
+      .eq('status', 'pending')
+      .eq('user.public', true)
+      .neq('requester_uid', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching public swap requests:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error fetching public swap requests:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch matching swap requests for the current user
+ * Returns requests where user has the requested skill
+ */
+export async function fetchMatchingSwapRequests(limit: number = 5): Promise<(SwapRequest & { requester: UserProfile })[]> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user profile to check their skills
+    const currentProfile = await fetchOwnUserProfile();
+    if (!currentProfile) return [];
+    
+    // Get the current user
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    
+    if (userError || !user) {
+      console.error('Error getting current user for matching requests:', userError);
+      return [];
+    }
+    
+    // For now, we'll show all public pending requests
+    // In the future, this could be enhanced to match based on skills
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .select(`
+        *,
+        requester:user!swap_requests_requester_uid_fkey (
+          uid,
+          first_name,
+          last_name,
+          display_name,
+          public,
+          location,
+          availability,
+          photo_url,
+          created_at
+        )
+      `)
+      .eq('status', 'pending')
+      .eq('user.public', true)
+      .neq('requester_uid', user.id)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) {
+      console.error('Error fetching matching swap requests:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error fetching matching swap requests:', err);
+    return [];
+  }
+}
+
+/**
+ * Fetch all swap requests (Admin only)
+ * Only admins can access all swap requests
+ */
+export async function fetchAllSwapRequests(): Promise<(SwapRequest & { requester: UserProfile })[]> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user and their session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (userError || !user || sessionError || !session) {
+      console.error('Error getting current user or session:', userError || sessionError);
+      return [];
+    }
+
+    // Decode JWT to extract role
+    const token = session.access_token;
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    const role = payload.user_role || "user";
+
+    // Check if user has admin role
+    if (role !== "admin") {
+      console.error('Permission denied: fetchAllSwapRequests requires admin role');
+      return [];
+    }
+
+    const { data, error } = await supabase
+      .from('swap_requests')
+      .select(`
+        *,
+        requester:user!swap_requests_requester_uid_fkey (
+          uid,
+          first_name,
+          last_name,
+          display_name,
+          public,
+          location,
+          availability,
+          photo_url,
+          created_at,
+          roles
+        )
+      `)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching all swap requests:', error);
+      return [];
+    }
+
+    return data || [];
+  } catch (err) {
+    console.error('Unexpected error fetching all swap requests:', err);
+    return [];
+  }
+}
+
+/**
+ * Delete a user (Admin only)
+ * Only admins can delete users
+ */
+export async function deleteUser(uid: string): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user and their session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (userError || !user || sessionError || !session) {
+      console.error('Error getting current user or session:', userError || sessionError);
+      return false;
+    }
+
+    // Decode JWT to extract role
+    const token = session.access_token;
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    const role = payload.user_role || "user";
+
+    // Check if user has admin role
+    if (role !== "admin") {
+      console.error('Permission denied: deleteUser requires admin role');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('user')
+      .delete()
+      .eq('uid', uid);
+
+    if (error) {
+      console.error('Error deleting user:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Unexpected error deleting user:', err);
+    return false;
+  }
+}
+
+/**
+ * Update user profile (Admin only)
+ * Only admins can update any user's profile
+ */
+export async function updateUserProfileAdmin(uid: string, updates: Partial<UserProfile>): Promise<UserProfile | null> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user and their session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (userError || !user || sessionError || !session) {
+      console.error('Error getting current user or session:', userError || sessionError);
+      return null;
+    }
+
+    // Decode JWT to extract role
+    const token = session.access_token;
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    const role = payload.user_role || "user";
+
+    // Check if user has admin role
+    if (role !== "admin") {
+      console.error('Permission denied: updateUserProfileAdmin requires admin role');
+      return null;
+    }
+
+    const { data, error } = await supabase
+      .from('user')
+      .update(updates)
+      .eq('uid', uid)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error updating user profile:', error);
+      return null;
+    }
+
+    return data;
+  } catch (err) {
+    console.error('Unexpected error updating user profile:', err);
+    return null;
+  }
+}
+
+/**
+ * Delete a swap request (Admin only)
+ * Only admins can delete any swap request
+ */
+export async function deleteSwapRequest(id: number): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user and their session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (userError || !user || sessionError || !session) {
+      console.error('Error getting current user or session:', userError || sessionError);
+      return false;
+    }
+
+    // Decode JWT to extract role
+    const token = session.access_token;
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    const role = payload.user_role || "user";
+
+    // Check if user has admin role
+    if (role !== "admin") {
+      console.error('Permission denied: deleteSwapRequest requires admin role');
+      return false;
+    }
+
+    const { error } = await supabase
+      .from('swap_requests')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      console.error('Error deleting swap request:', error);
+      return false;
+    }
+
+    return true;
+  } catch (err) {
+    console.error('Unexpected error deleting swap request:', err);
+    return false;
+  }
+}
+
+/**
+ * Get admin dashboard stats
+ * Only admins can access these stats
+ */
+export async function fetchAdminStats(): Promise<{
+  totalUsers: number;
+  totalSwapRequests: number;
+  activeSwapRequests: number;
+  completedSwapRequests: number;
+  publicProfiles: number;
+  privateProfiles: number;
+}> {
+  try {
+    const supabase = await createClient();
+    
+    // Get the current user and their session
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    
+    if (userError || !user || sessionError || !session) {
+      console.error('Error getting current user or session:', userError || sessionError);
+      return { totalUsers: 0, totalSwapRequests: 0, activeSwapRequests: 0, completedSwapRequests: 0, publicProfiles: 0, privateProfiles: 0 };
+    }
+
+    // Decode JWT to extract role
+    const token = session.access_token;
+    const payload = JSON.parse(
+      Buffer.from(token.split(".")[1], "base64").toString()
+    );
+    const role = payload.user_role || "user";
+
+    // Check if user has admin role
+    if (role !== "admin") {
+      console.error('Permission denied: fetchAdminStats requires admin role');
+      return { totalUsers: 0, totalSwapRequests: 0, activeSwapRequests: 0, completedSwapRequests: 0, publicProfiles: 0, privateProfiles: 0 };
+    }
+
+    // Get user stats
+    const { data: users, error: usersError } = await supabase
+      .from('user')
+      .select('public');
+
+    const { data: swapRequests, error: swapError } = await supabase
+      .from('swap_requests')
+      .select('status');
+
+    if (usersError || swapError) {
+      console.error('Error fetching admin stats:', usersError || swapError);
+      return { totalUsers: 0, totalSwapRequests: 0, activeSwapRequests: 0, completedSwapRequests: 0, publicProfiles: 0, privateProfiles: 0 };
+    }
+
+    const totalUsers = users?.length || 0;
+    const publicProfiles = users?.filter(u => u.public).length || 0;
+    const privateProfiles = totalUsers - publicProfiles;
+
+    const totalSwapRequests = swapRequests?.length || 0;
+    const activeSwapRequests = swapRequests?.filter(r => r.status === 'pending').length || 0;
+    const completedSwapRequests = swapRequests?.filter(r => r.status === 'completed').length || 0;
+
+    return {
+      totalUsers,
+      totalSwapRequests,
+      activeSwapRequests,
+      completedSwapRequests,
+      publicProfiles,
+      privateProfiles
+    };
+  } catch (err) {
+    console.error('Unexpected error fetching admin stats:', err);
+    return { totalUsers: 0, totalSwapRequests: 0, activeSwapRequests: 0, completedSwapRequests: 0, publicProfiles: 0, privateProfiles: 0 };
+  }
+}
