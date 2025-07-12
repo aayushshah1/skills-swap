@@ -4,10 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export default function SearchFilters({ filters, setFilters }: {
-  filters: { skill: string, availability: string },
-  setFilters: (f: any) => void
-}) {
+interface SearchFiltersProps {
+  filters: { skill: string; availability: string };
+  setFilters: (filters: { skill: string; availability: string }) => void;
+}
+
+export default function SearchFilters({ filters, setFilters }: SearchFiltersProps) {
   return (
     <div className="flex flex-wrap gap-4">
       <div className="flex flex-col">

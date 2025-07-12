@@ -1,17 +1,21 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import Image from "next/image";
+import type { PublicUserProfile } from "@/types/supabase";
 
 export default function ProfileCard({ profile, onRequestClick }: {
-  profile: any;
+  profile: PublicUserProfile;
   onRequestClick: () => void;
 }) {
   return (
     <Card className="flex flex-col gap-4 p-4">
       <div className="flex items-center gap-4">
-        <img
-          src={profile.image || "/default-user.png"}
+        <Image
+          src={profile.photo_url || "/default-user.png"}
           alt="profile"
-          className="w-12 h-12 rounded-full"
+          width={48}
+          height={48}
+          className="w-12 h-12 rounded-full object-cover"
         />
         <div>
           <h2 className="text-lg font-semibold">{profile.name}</h2>
@@ -30,12 +34,12 @@ export default function ProfileCard({ profile, onRequestClick }: {
         </div>
         <div>
           <strong>Availability:</strong>{" "}
-          <span>{profile.availability || 'N/A'}</span>
+          <span>{profile.availability?.join(', ') || 'N/A'}</span>
         </div>
-        {/* optional rating */}
-        {profile.rating && (
+        {/* Show completed swaps instead of rating */}
+        {profile.completed_swaps > 0 && (
           <div>
-            <strong>Rating:</strong> ⭐ {profile.rating.toFixed(1)}
+            <strong>Completed Swaps:</strong> {profile.completed_swaps}
           </div>
         )}
         <Button className="w-full" onClick={onRequestClick}>

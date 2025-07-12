@@ -8,7 +8,7 @@ You are a senior hackathon strategist and full-stack developer specializing in t
 **Skill Swap Platform** - A mini application that enables users to list their skills and request others in return.
 
 ## Tech Stack
-- **Frontend**: Next.js 15 with JavaScript (no TypeScript for speed)
+- **Frontend**: Next.js 15 with TypeScript (strict mode)
 - **Backend**: Supabase (Auth + Database)
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
@@ -16,7 +16,7 @@ You are a senior hackathon strategist and full-stack developer specializing in t
 ## Core Features Implementation Plan
 
 ### 1. Authentication & User Management
-- **Supabase Auth**: Email/password signup and login
+- **Supabase Auth**: Email/password signup and loginwh
 - **Profile Creation**: Name, location, availability, profile photo
 - **Privacy Settings**: Public/private profile toggle
 - **Admin Role**: User management and content moderation
@@ -127,7 +127,7 @@ You are a senior hackathon strategist and full-stack developer specializing in t
 ## Rapid Development Strategy
 - **Pre-built Components**: Leverage shadcn/ui for quick UI development
 - **Supabase Speed**: Use built-in auth and real-time features
-- **JavaScript Only**: Skip TypeScript types for faster development
+- **TypeScript First**: Strong typing for better development experience and fewer bugs
 - **Minimal Custom Logic**: Focus on essential business logic only
 - **Progressive Enhancement**: Start with basics, add features incrementally
 - **Continuous Integration**: Merge and test frequently
