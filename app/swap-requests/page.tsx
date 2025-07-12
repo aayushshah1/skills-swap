@@ -20,8 +20,7 @@ export default async function SwapRequestDiagnosticsPage() {
       skill_offered,
       skill_requested,
       description,
-      status,
-      updated_at
+      status
     `);
 
   return (
